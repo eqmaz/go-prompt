@@ -94,11 +94,11 @@ var suggestions = []prompt.Suggest{
 }
 
 func livePrefix(defaultPrefix string) prompt.PrefixCallback {
-	return func() string {
+	return func() prompt.Prefix {
 		if ctx.url.Path == "/" {
-			return defaultPrefix
+			return prompt.Prefix{Text: defaultPrefix}
 		}
-		return ctx.url.String() + "> "
+		return prompt.Prefix{Text: ctx.url.String() + "> "}
 	}
 }
 
