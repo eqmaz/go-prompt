@@ -3,6 +3,8 @@ package strings
 import (
 	"unicode/utf8"
 
+	"regexp"
+
 	"github.com/mattn/go-runewidth"
 	"github.com/rivo/uniseg"
 )
@@ -27,6 +29,18 @@ func RuneCount(b []byte) RuneNumber {
 // cluster's width, and adds them up to a total.
 func GetWidth(text string) Width {
 	return Width(uniseg.StringWidth(text))
+}
+
+var ansiRegexp = regexp.MustCompile(`\x1b\[[0-9;]*[A-Za-z]`)
+
+// StripANSI removes ANSI escape sequences from the given text.
+func StripANSI(text string) string {
+	return ansiRegexp.ReplaceAllString(text, "")
+}
+
+// GetWidthNoANSI calculates the width of the text ignoring any ANSI escape sequences.
+func GetWidthNoANSI(text string) Width {
+	return GetWidth(StripANSI(text))
 }
 
 // Returns the number of horizontal cells needed to print the given

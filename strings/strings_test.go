@@ -37,6 +37,21 @@ func TestGetWidth(t *testing.T) {
 	}
 }
 
+func TestStripANSI(t *testing.T) {
+	in := "\x1b[31mfoo\x1b[0m"
+	want := "foo"
+	if got := strings.StripANSI(in); got != want {
+		t.Errorf("Should be %#v, but got %#v", want, got)
+	}
+}
+
+func TestGetWidthNoANSI(t *testing.T) {
+	in := "\x1b[31mfoo\x1b[0m"
+	if got := strings.GetWidthNoANSI(in); got != 3 {
+		t.Errorf("Width should be 3, got %#v", got)
+	}
+}
+
 func TestRuneIndexNthColumn(t *testing.T) {
 	tests := []struct {
 		text string

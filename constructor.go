@@ -7,7 +7,16 @@ import "fmt"
 type Option func(prompt *Prompt) error
 
 // Callback function that returns a prompt prefix.
-type PrefixCallback func() (prefix string)
+// Prefix represents the text shown before the user input
+// along with information about whether the text contains
+// custom ANSI colour sequences.
+type Prefix struct {
+	Text        string
+	CustomColor bool
+}
+
+// PrefixCallback returns a prompt prefix.
+type PrefixCallback func() Prefix
 
 const DefaultIndentSize = 2
 
@@ -74,7 +83,9 @@ func WithTitle(t string) Option {
 // WithPrefix can be used to set a prefix string for the prompt.
 func WithPrefix(prefix string) Option {
 	return func(p *Prompt) error {
-		p.renderer.prefixCallback = func() string { return prefix }
+		p.renderer.prefixCallback = func() Prefix {
+			return Prefix{Text: prefix}
+		}
 		return nil
 	}
 }
@@ -321,8 +332,8 @@ func DefaultExecuteOnEnterCallback(p *Prompt, indentSize int) (int, bool) {
 	return 0, true
 }
 
-func DefaultPrefixCallback() string {
-	return "> "
+func DefaultPrefixCallback() Prefix {
+	return Prefix{Text: "> ", CustomColor: false}
 }
 
 // New returns a Prompt with powerful auto-completion.

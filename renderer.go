@@ -73,12 +73,14 @@ func (r *Renderer) Setup() {
 	}
 }
 
-func (r *Renderer) renderPrefix(prefix string) {
-	r.out.SetColor(r.prefixTextColor, r.prefixBGColor, false)
+func (r *Renderer) renderPrefix(prefix Prefix) {
+	if !prefix.CustomColor {
+		r.out.SetColor(r.prefixTextColor, r.prefixBGColor, false)
+	}
 	if _, err := r.out.WriteString("\r"); err != nil {
 		panic(err)
 	}
-	if _, err := r.out.WriteString(prefix); err != nil {
+	if _, err := r.out.WriteString(prefix.Text); err != nil {
 		panic(err)
 	}
 	r.out.SetColor(DefaultColor, DefaultColor, false)
@@ -112,10 +114,14 @@ func (r *Renderer) renderCompletion(buf *Buffer, completions *CompletionManager)
 		return
 	}
 	prefix := r.prefixCallback()
-	prefixWidth := istrings.GetWidth(prefix)
+	plain := prefix.Text
+	if prefix.CustomColor {
+		plain = istrings.StripANSI(prefix.Text)
+	}
+	prefixWidth := istrings.GetWidth(plain)
 	formatted, width := formatSuggestions(
 		suggestions,
-		r.col-istrings.GetWidth(prefix)-1, // -1 means a width of scrollbar
+		r.col-istrings.GetWidth(plain)-1, // -1 means a width of scrollbar
 	)
 	// +1 means a width of scrollbar.
 	width++
@@ -205,7 +211,11 @@ func (r *Renderer) Render(buffer *Buffer, completion *CompletionManager, lexer L
 
 	text := buffer.Text()
 	prefix := r.prefixCallback()
-	prefixWidth := istrings.GetWidth(prefix)
+	plain := prefix.Text
+	if prefix.CustomColor {
+		plain = istrings.StripANSI(prefix.Text)
+	}
+	prefixWidth := istrings.GetWidth(plain)
 	col := r.col - prefixWidth
 	endLine := buffer.startLine + int(r.row) - 1
 	cursor := positionAtEndOfStringLine(text, col, endLine)
@@ -235,9 +245,18 @@ func (r *Renderer) renderText(lexer Lexer, input string, startLine int) {
 	}
 
 	prefix := r.prefixCallback()
-	prefixWidth := istrings.GetWidth(prefix)
+	plainPrefix := prefix.Text
+	if prefix.CustomColor {
+		plainPrefix = istrings.StripANSI(prefix.Text)
+	}
+	prefixWidth := istrings.GetWidth(plainPrefix)
 	col := r.col - prefixWidth
-	multilinePrefix := r.getMultilinePrefix(prefix)
+	var multilinePrefix Prefix
+	if prefix.CustomColor {
+		multilinePrefix = prefix
+	} else {
+		multilinePrefix = Prefix{Text: r.getMultilinePrefix(plainPrefix)}
+	}
 	if startLine != 0 {
 		prefix = multilinePrefix
 	}
@@ -285,7 +304,7 @@ func (r *Renderer) flush() {
 	debug.AssertNoError(r.out.Flush())
 }
 
-func (r *Renderer) renderLine(prefix, line string, color Color) {
+func (r *Renderer) renderLine(prefix Prefix, line string, color Color) {
 	r.renderPrefix(prefix)
 	r.writeStringColor(line, color)
 }
@@ -339,9 +358,18 @@ func (r *Renderer) getMultilinePrefix(prefix string) string {
 // and writes the result
 func (r *Renderer) lex(lexer Lexer, input string, startLine int) {
 	prefix := r.prefixCallback()
-	prefixWidth := istrings.GetWidth(prefix)
+	plainPrefix := prefix.Text
+	if prefix.CustomColor {
+		plainPrefix = istrings.StripANSI(prefix.Text)
+	}
+	prefixWidth := istrings.GetWidth(plainPrefix)
 	col := r.col - prefixWidth
-	multilinePrefix := r.getMultilinePrefix(prefix)
+	var multilinePrefix Prefix
+	if prefix.CustomColor {
+		multilinePrefix = prefix
+	} else {
+		multilinePrefix = Prefix{Text: r.getMultilinePrefix(plainPrefix)}
+	}
 	var lineCharIndex istrings.Width
 	var lineNumber int
 	endLine := startLine + int(r.row)
@@ -457,7 +485,11 @@ func (r *Renderer) resetFormatting() {
 func (r *Renderer) BreakLine(buffer *Buffer, lexer Lexer) {
 	// Erasing and Renderer
 	prefix := r.prefixCallback()
-	prefixWidth := istrings.GetWidth(prefix)
+	plainPrefix := prefix.Text
+	if prefix.CustomColor {
+		plainPrefix = istrings.StripANSI(prefix.Text)
+	}
+	prefixWidth := istrings.GetWidth(plainPrefix)
 	cursor := positionAtEndOfString(buffer.Document().TextBeforeCursor(), r.col-prefixWidth)
 	cursor.X += prefixWidth
 	r.clear(cursor)
@@ -480,7 +512,12 @@ func (r *Renderer) BreakLine(buffer *Buffer, lexer Lexer) {
 // Get the number of columns that are available
 // for user input.
 func (r *Renderer) UserInputColumns() istrings.Width {
-	return r.col - istrings.GetWidth(r.prefixCallback())
+	prefix := r.prefixCallback()
+	plain := prefix.Text
+	if prefix.CustomColor {
+		plain = istrings.StripANSI(prefix.Text)
+	}
+	return r.col - istrings.GetWidth(plain)
 }
 
 // clear erases the screen from a beginning of input

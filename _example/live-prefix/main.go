@@ -32,8 +32,8 @@ func completer(in prompt.Document) ([]prompt.Suggest, istrings.RuneNumber, istri
 	return prompt.FilterHasPrefix(s, w, true), startIndex, endIndex
 }
 
-func changeLivePrefix() string {
-	return LivePrefix
+func changeLivePrefix() prompt.Prefix {
+	return prompt.Prefix{Text: LivePrefix}
 }
 
 func main() {
